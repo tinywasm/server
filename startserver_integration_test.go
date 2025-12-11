@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package goserver_test
+package server
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	gs "github.com/cdvelop/goserver"
+	gs "github.com/tinywasm/server"
 )
 
 // Integration test: black-box verification that StartServer generates the external

@@ -1,4 +1,4 @@
-package goserver
+package server
 
 import (
 	"os"
@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cdvelop/gobuild"
-	"github.com/cdvelop/gorun"
+	"github.com/tinywasm/gobuild"
+	"github.com/tinywasm/gorun"
 )
 
 type ServerHandler struct {

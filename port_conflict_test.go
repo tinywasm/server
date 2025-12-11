@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package goserver_test
+package server
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/cdvelop/goserver"
+	. "github.com/tinywasm/server"
 )
 
 // TestPortConflictCleanup tests what happens when there's a port conflict

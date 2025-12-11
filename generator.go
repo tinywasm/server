@@ -1,4 +1,4 @@
-package goserver
+package server
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"path"
 	"text/template"
 
-	"github.com/cdvelop/mdgo"
+	"github.com/tinywasm/mdgo"
 )
 
 //go:embed templates/*

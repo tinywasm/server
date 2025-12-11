@@ -67,8 +67,8 @@ tional external server) to an auto-generating external server approach. The new 
    ```
 
 3. **Current Dependencies**:
-   - `github.com/cdvelop/gobuild` - Go compilation management
-   - `github.com/cdvelop/gorun` - External process execution
+   - `github.com/tinywasm/gobuild` - Go compilation management
+   - `github.com/tinywasm/gorun` - External process execution
    - Standard `net/http` - Internal file server
 
 ### Current Public API

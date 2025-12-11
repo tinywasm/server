@@ -1,4 +1,4 @@
-package goserver
+package server
 
 // event: create,write,remove,rename
 func (h *ServerHandler) NewFileEvent(fileName, extension, filePath, event string) error {
