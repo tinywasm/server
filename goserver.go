@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cdvelop/gorun"
 	"github.com/tinywasm/gobuild"
-	"github.com/tinywasm/gorun"
 )
 
 type ServerHandler struct {

@@ -8,7 +8,7 @@ import (
 	"path"
 	"text/template"
 
-	"github.com/tinywasm/mdgo"
+	"github.com/tinywasm/devflow"
 )
 
 //go:embed templates/*
@@ -54,7 +54,7 @@ func (h *ServerHandler) generateServerFromEmbeddedMarkdown() error {
 		processed = embeddedContent
 	}
 
-	// Use mdgo to extract Go code from markdown
+	// Use devflow to extract Go code from markdown
 	writer := func(name string, data []byte) error {
 		if err := os.MkdirAll(path.Dir(name), 0o755); err != nil {
 			return err
@@ -62,9 +62,9 @@ func (h *ServerHandler) generateServerFromEmbeddedMarkdown() error {
 		return os.WriteFile(name, data, 0o644)
 	}
 
-	// mdgo needs the full destination path
+	// devflow needs the full destination path
 	destDir := path.Join(h.AppRootDir, h.SourceDir)
-	m := mdgo.New(h.AppRootDir, destDir, writer).
+	m := devflow.NewMarkDown(h.AppRootDir, destDir, writer).
 		InputByte([]byte(processed))
 
 	if h.Logger != nil {
