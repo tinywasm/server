@@ -1,6 +1,6 @@
 github.com/cdvelop/gorun v0.0.14 h1:G1a6Nl/5W7IF9RHBGiULqQ+DbkEnS66CTh7yzUwuGJQ=
 github.com/cdvelop/gorun v0.0.14/go.mod h1:DhTPzWzM2D7QqZdZYDHulyYwFegovWaH7r0bX/6nRJQ=
-github.com/tinywasm/devflow v0.0.17 h1:UkjHKdYMJMfkl0uqEO5DfmCf7UK978ODZDK6uuvT05c=
-github.com/tinywasm/devflow v0.0.17/go.mod h1:LAj19lRFxaLXFhzpYJx9tWkf1D2B+A2A8yzMLTt49lw=
-github.com/tinywasm/gobuild v0.0.18 h1:VUpQY73rt9Sjx5acIQIvQ6RL5v7QZ6iGLyqshTBfK8g=
-github.com/tinywasm/gobuild v0.0.18/go.mod h1:48JVlXnOy8ZBiz/vz5rWMxv4ZrQvB5Fbw22kOx6RfZY=
+github.com/tinywasm/devflow v0.0.19 h1:6Aqx2nzp3+paPUz/HrSbaN+Rfy3y4fPbboY88xAQCTA=
+github.com/tinywasm/devflow v0.0.19/go.mod h1:LAj19lRFxaLXFhzpYJx9tWkf1D2B+A2A8yzMLTt49lw=
+github.com/tinywasm/gobuild v0.0.20 h1:z2ZWEy9SJVkrJFvJHYEh5CcgDLNzVWrFxhlpwhasmb4=
+github.com/tinywasm/gobuild v0.0.20/go.mod h1:48JVlXnOy8ZBiz/vz5rWMxv4ZrQvB5Fbw22kOx6RfZY=
