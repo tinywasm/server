@@ -34,9 +34,9 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		AppRootDir:    ".",
-		SourceDir:     "src/cmd/appserver",
-		OutputDir:     "deploy/appserver",
-		PublicDir:     "src/web/public",
+		SourceDir:     "web",
+		OutputDir:     "web",
+		PublicDir:     "web/public",
 		MainInputFile: "main.go", // Default convention
 		AppPort:       "8080",
 		Logger: func(message ...any) {
