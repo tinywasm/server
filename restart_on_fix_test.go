@@ -42,8 +42,6 @@ func TestNewFileEvent_RestartsAfterFix(t *testing.T) {
 		ExitChan:   make(chan bool, 1),
 	}
 
-	handler := New(cfg)
-
 	serverFile := filepath.Join(sourceDir, "main.go")
 
 	// Initial correct content so the server starts
@@ -66,6 +64,8 @@ func main() {
 	if err := os.WriteFile(serverFile, []byte(initialContent), 0644); err != nil {
 		t.Fatalf("writing initial server file: %v", err)
 	}
+
+	handler := New(cfg)
 
 	// Start the server so there is a running process to stop on restart
 	var wg sync.WaitGroup

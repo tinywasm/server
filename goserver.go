@@ -1,33 +1,31 @@
 package server
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
-	"time"
-
-	"github.com/cdvelop/gorun"
-	"github.com/tinywasm/gobuild"
 )
 
 type ServerHandler struct {
 	*Config
 	mainFileExternalServer string // eg: main.server.go
-	goCompiler             *gobuild.GoBuild
-	goRun                  *gorun.GoRun
+	strategy               ServerStrategy
+	inMemory               bool // true if running in-memory
+	// goCompiler and goRun are now managed by externalStrategy
 }
 
 type Config struct {
-	AppRootDir                  string               // e.g., /home/user/project (application root directory)
-	SourceDir                   string               // directory location of main.go e.g., src/cmd/appserver (relative to AppRootDir)
-	OutputDir                   string               // compilation and execution directory e.g., deploy/appserver (relative to AppRootDir)
-	PublicDir                   string               // default public dir for generated server (e.g., src/web/public)
-	MainInputFile               string               // main input file name (default: "main.go", can be "server.go", etc.)
-	ArgumentsForCompilingServer func() []string      // e.g., []string{"-X 'main.version=v1.0.0'"}
-	ArgumentsToRunServer        func() []string      // e.g., []string{"dev"}
-	AppPort                     string               // e.g., 8080
-	Logger                      func(message ...any) // For logging output
-	ExitChan                    chan bool            // Global channel to signal shutdown
+	AppRootDir                  string                 // e.g., /home/user/project (application root directory)
+	SourceDir                   string                 // directory location of main.go e.g., src/cmd/appserver (relative to AppRootDir)
+	OutputDir                   string                 // compilation and execution directory e.g., deploy/appserver (relative to AppRootDir)
+	PublicDir                   string                 // default public dir for generated server (e.g., src/web/public)
+	MainInputFile               string                 // main input file name (default: "main.go", can be "server.go", etc.)
+	ArgumentsForCompilingServer func() []string        // e.g., []string{"-X 'main.version=v1.0.0'"}
+	ArgumentsToRunServer        func() []string        // e.g., []string{"dev"}
+	AppPort                     string                 // e.g., 8080
+	Routes                      []func(*http.ServeMux) // Functions to register routes on the HTTP server
+	Logger                      func(message ...any)   // For logging output
+	ExitChan                    chan bool              // Global channel to signal shutdown
 }
 
 // NewConfig provides a default configuration.
@@ -39,6 +37,7 @@ func NewConfig() *Config {
 		PublicDir:     "web/public",
 		MainInputFile: "main.go", // Default convention
 		AppPort:       "8080",
+		Routes:        nil,
 		Logger: func(message ...any) {
 			// Silent by default
 		},
@@ -86,47 +85,26 @@ func New(c *Config) *ServerHandler {
 			c.ArgumentsToRunServer = func() []string { return nil }
 		}
 	}
-	// Ensure the output directory exists
-	if err := os.MkdirAll(filepath.Join(c.AppRootDir, c.OutputDir), 0755); err != nil {
-		if c.Logger != nil {
-			c.Logger("Error creating output directory:", err)
-		}
-	}
-	var exe_ext = ""
-	if runtime.GOOS == "windows" {
-		exe_ext = ".exe"
-	}
 
 	sh := &ServerHandler{
 		Config:                 c,
 		mainFileExternalServer: c.MainInputFile, // Use configured file name
 	}
 
-	// Extract output name from input file (e.g., "server.go" -> "server")
-	outName := sh.mainFileExternalServer
-	if ext := filepath.Ext(outName); ext != "" {
-		outName = outName[:len(outName)-len(ext)]
+	// Determine initial strategy
+	// Check if external server file exists in source directory
+	mainFilePath := filepath.Join(c.AppRootDir, c.SourceDir, sh.mainFileExternalServer)
+	if _, err := os.Stat(mainFilePath); err == nil {
+		// File exists, use External Strategy
+		sh.inMemory = false
+		sh.strategy = newExternalStrategy(sh)
+		sh.Logger("Found existing server file, using External Process strategy.")
+	} else {
+		// File does not exist, use In-Memory Strategy
+		sh.inMemory = true
+		sh.strategy = newInMemoryStrategy(sh)
+		sh.Logger("No existing server file, defaulting to In-Memory strategy.")
 	}
-
-	sh.goCompiler = gobuild.New(&gobuild.Config{
-		Command:                   "go",
-		MainInputFileRelativePath: filepath.Join(c.AppRootDir, c.SourceDir, sh.mainFileExternalServer),
-		OutName:                   outName, // Use input file name without extension
-		Extension:                 exe_ext,
-		CompilingArguments:        c.ArgumentsForCompilingServer,
-		OutFolderRelativePath:     filepath.Join(c.AppRootDir, c.OutputDir),
-		Logger:                    c.Logger,
-		Timeout:                   30 * time.Second,
-	})
-
-	sh.goRun = gorun.New(&gorun.Config{
-		ExecProgramPath: "./" + sh.goCompiler.MainOutputFileNameWithExtension(),
-		RunArguments:    c.ArgumentsToRunServer,
-		ExitChan:        c.ExitChan,
-		Logger:          c.Logger,
-		KillAllOnStop:   true,
-		WorkingDir:      filepath.Join(c.AppRootDir, c.OutputDir), // Execute from OutputDir
-	})
 
 	return sh
 }
@@ -140,7 +118,18 @@ func (h *ServerHandler) SupportedExtensions() []string {
 	return []string{".go"}
 }
 
-// UnobservedFiles returns the list of files that should not be tracked by file watchers eg: main.exe, main_temp.exe
+// UnobservedFiles returns the list of files that should not be tracked by file watchers
 func (h *ServerHandler) UnobservedFiles() []string {
-	return h.goCompiler.UnobservedFiles()
+	if !h.inMemory {
+		// If external, we ideally delegate to the external strategy to know what to ignore.
+		// But UnobservedFiles is called by the watcher which might be independent.
+		// For now, we can check if strategy implements a method or just return standard ignores if known.
+		// The previous implementation utilized h.goCompiler.UnobservedFiles().
+		// We can cast strategy to externalStrategy or return empty if in-memory.
+		if ext, ok := h.strategy.(*externalStrategy); ok {
+			return ext.goCompiler.UnobservedFiles()
+		}
+	}
+	// In-memory generally doesn't produce artifacts to ignore, except maybe logs?
+	return []string{}
 }

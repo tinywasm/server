@@ -37,12 +37,10 @@ func TestStartServerAlwaysRecompiles(t *testing.T) {
 		AppRootDir: tmp,
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))), // "src/app"
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))), // "deploy"
-		AppPort:    "0", // Use port 0 for automatic assignment
+		AppPort:    "0",                                                                           // Use port 0 for automatic assignment
 		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
-
-	handler := New(cfg)
 
 	// First, create the server file in the source directory
 	serverFile := filepath.Join(sourceDir, "main.go")
@@ -65,6 +63,8 @@ func main() {
 	if err := os.WriteFile(serverFile, []byte(initialContent), 0644); err != nil {
 		t.Fatalf("writing initial server file: %v", err)
 	}
+
+	handler := New(cfg)
 
 	// Start the server for the first time
 	var wg sync.WaitGroup
@@ -161,8 +161,6 @@ func TestNewFileEventTriggersRecompilation(t *testing.T) {
 		ExitChan:   make(chan bool, 1),
 	}
 
-	handler := New(cfg)
-
 	// Create the server file in the source directory
 	serverFile := filepath.Join(sourceDir, "main.go")
 	initialContent := `package main
@@ -184,6 +182,8 @@ func main() {
 	if err := os.WriteFile(serverFile, []byte(initialContent), 0644); err != nil {
 		t.Fatalf("writing initial server file: %v", err)
 	}
+
+	handler := New(cfg)
 
 	// Start the server first
 	var wg sync.WaitGroup
@@ -259,8 +259,6 @@ func TestNewFileEventOnOtherGoFiles(t *testing.T) {
 		ExitChan:   make(chan bool, 1),
 	}
 
-	handler := New(cfg)
-
 	// Create the server file in the source directory
 	serverFile := filepath.Join(sourceDir, "main.go")
 	serverContent := `package main
@@ -282,6 +280,8 @@ func main() {
 	if err := os.WriteFile(serverFile, []byte(serverContent), 0644); err != nil {
 		t.Fatalf("writing server file: %v", err)
 	}
+
+	handler := New(cfg)
 
 	// Create another Go file (shared module)
 	sharedFile := filepath.Join(tmp, "utils.go")

@@ -7,36 +7,45 @@
 This README documents only the public API exported by the `goserver` package.
 
 Short summary
- - `goserver` provides a `Config` struct and a `ServerHandler` type. Create a handler with `New(*Config)` and control a server process using exported methods on `ServerHandler`.
+ - `server` provides a specialized HTTP server handler for TinyWASM applications.
+ - It operates in two modes:
+    1. **In-Memory (Default)**: Runs a lightweight `net/http` server within the application process. Best for development speed and zero-file generation start.
+    2. **External Process (Permanent)**: Generates a standalone main Go file, compiles it, and runs it as a separate process. Best for customization and production-like validation.
+ - It seamlessly handles the transition between modes via `CreateTemplateServer`.
 
 Public API (types and functions)
 
 - type `Config`
-	- Fields (public fields used by the package):
+	- Fields:
 		- `AppRootDir string`
-		- `SourceDir string`
-		- `OutputDir string`
+		- `SourceDir string` (Default: `"web"`)
+		- `OutputDir string` (Default: `"web"`)
+		- `PublicDir string` (Default: `"web/public"`)
+		- `AppPort string` (Default: `"8080"`)
+		- `Routes []func(mux *http.ServeMux)` — Register HTTP handlers for In-Memory mode.
 		- `ArgumentsForCompilingServer func() []string`
 		- `ArgumentsToRunServer func() []string`
-		- `AppPort string`
 		- `Logger func(message ...any)`
 		- `ExitChan chan bool`
 
-- func `NewConfig() *Config` — returns a new Config with sensible default values
+- func `NewConfig() *Config` — returns a new Config with default values.
 
 - type `ServerHandler`
 	- Construct with: `New(c *Config) *ServerHandler`
-	- Exported methods (signatures as found in source):
-		- `MainInputFileRelativePath() string` — returns the path to the generated/external main server file inside the configured `SourceDir`.
-		- `Name() string` — returns the server name (`"GoServer"`).
-		- `UnobservedFiles() []string` — files that should not be observed by file watchers (executables, temp files).
-		- `RestartServer() error` — restart the external server.
-		- `StartServer(wg *sync.WaitGroup)` — starts the external server; intended to be run as a goroutine and calls `wg.Done()` when finished.
-		- `NewFileEvent(fileName, extension, filePath, event string) error` — handle file system events; recognized events include `create` and `write` for triggering generation/compilation/restart.
+	- **Startup Logic**: Automatically detects if a server file exists in `SourceDir`.
+		- If exists: Starts in **External Process** mode.
+		- If missing: Starts in **In-Memory** mode using provided `Routes`.
+	- Exported methods:
+		- `StartServer(wg *sync.WaitGroup)` — Starts the server (async).
+		- `CreateTemplateServer(progress chan<- string) error` — Transitions from In-Memory to External mode. Generates files, compiles, and restarts.
+		- `RestartServer() error` — Restarts the server.
+		- `NewFileEvent(...)` — Handles hot-reloads (recompiles external server or no-op/refresh for in-memory).
+		- `MainInputFileRelativePath() string`
+		- `UnobservedFiles() []string`
 
 Notes and behaviour
-- The package may generate an external server file from embedded templates when the external file is missing. That generation and other internal helpers are not part of the public API (they are unexported).
-- The README intentionally documents only the exported surface. Implementation details, unexported helpers and additional files in `templates/` or `docs/` are not documented here.
+- **Routes Registration**: Use `Config.Routes` to register handlers (e.g., static assets, API endpoints) so they work immediately in In-Memory mode.
+- **Persistence**: Once `CreateTemplateServer` is called (or if files exist), the server remains in "External" mode permanently for that project unless files are deleted.
 
 Minimal usage example
 
@@ -44,34 +53,38 @@ Minimal usage example
 package main
 
 import (
-		"fmt"
-		"os"
-		"sync"
-		"github.com/tinywasm/server"
+    "fmt"
+    "net/http"
+    "os"
+    "sync"
+    "github.com/tinywasm/server"
 )
 
 func main() {
-		cfg := &goserver.Config{
-				AppRootDir:               ".",
-				SourceDir:                "src/cmd/appserver",
-				OutputDir:                "deploy/appserver",
-				ArgumentsForCompilingServer: func() []string { return []string{} },
-				ArgumentsToRunServer:        func() []string { return []string{} },
-				AppPort:                  "8080",
-				Logger:                   func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) },
-				ExitChan:                 make(chan bool),
-		}
+    // Define a route function
+    myRoute := func(mux *http.ServeMux) {
+        mux.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+            fmt.Fprint(w, "Hello from In-Memory Server!")
+        })
+    }
 
-		handler := goserver.New(cfg)
+    cfg := &server.Config{
+        AppRootDir:           ".",
+        Routes:               []func(*http.ServeMux){myRoute},
+        Logger:               func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) },
+    }
 
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go handler.StartServer(&wg)
-		wg.Wait()
+    handler := server.New(cfg)
+
+    var wg sync.WaitGroup
+    wg.Add(1)
+    go handler.StartServer(&wg)
+    wg.Wait()
+    
+    // To switch to external mode later:
+    // handler.CreateTemplateServer(nil)
 }
 ```
 
-If you want more documentation about embedded templates or design rationale, consult the `templates/` and `docs/` folders which contain implementation docs — they are not part of the exported API surface described here.
 
-
-## [Contributing](https://github.com/tinywasm/cdvelop/blob/main/CONTRIBUTING.md)
+## [Contributing](https://github.com/cdvelop/cdvelop/blob/main/CONTRIBUTING.md)

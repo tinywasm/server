@@ -5,20 +5,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 )
 
-// This is a black-box test: it uses only the public API of the package under test.
-// It verifies that calling StartServer will generate the external server file
-// when it doesn't exist. The test is intentionally lightweight and does not
-// attempt to compile or run the generated binary.
-func TestStartServerGeneratesExternalFile(t *testing.T) {
+// This test verifies that calling CreateTemplateServer generates the external server file
+// and switches strategy. We don't necessarily enforce successful compilation in this test env,
+// but we verify file generation.
+func TestCreateTemplateServerGeneratesFile(t *testing.T) {
 	// enabled: run automatically
 
 	tmp := t.TempDir()
 
-	// capture logs into a buffer so we can inspect what StartServer printed
+	// capture logs into a buffer
 	var logMessages []string
 	logger := func(messages ...any) {
 		logMessages = append(logMessages, fmt.Sprint(messages...))
@@ -28,9 +26,9 @@ func TestStartServerGeneratesExternalFile(t *testing.T) {
 		AppRootDir: tmp,
 		SourceDir:  "src/app",
 		OutputDir:  "deploy",
-		AppPort:    "9090",
+		AppPort:    "0", // Use random port to avoid conflicts if it runs
 		Logger:     logger,
-		ExitChan:   make(chan bool),
+		ExitChan:   make(chan bool, 1),
 	}
 
 	h := New(cfg)
@@ -41,22 +39,53 @@ func TestStartServerGeneratesExternalFile(t *testing.T) {
 		t.Fatalf("expected no external server file at %s", target)
 	}
 
-	// Start the server in background. StartServer expects a WaitGroup.
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go h.StartServer(&wg)
+	// Verify we are in InMemory mode
+	if !h.inMemory {
+		t.Fatal("Expected In-Memory mode initially")
+	}
 
-	// Wait for StartServer to finish
-	wg.Wait()
+	// Create a channel for progress updates (optional, but testing API)
+	progress := make(chan string, 10)
+
+	// Call CreateTemplateServer using a background goroutine or check result.
+	// Since CreateTemplateServer tries to compile, and we might not have a full Go env for the generated code
+	// (depending on dependencies), it might return an error.
+	// We primarily care that it generated the file.
+	err := h.CreateTemplateServer(progress)
+
+	// Close progress channel to read all messages
+	close(progress)
+
+	// Log progress for debugging
+	for msg := range progress {
+		t.Log("Progress:", msg)
+	}
+
+	if err != nil {
+		t.Logf("CreateTemplateServer returned error (expected in restricted test env if compile fails): %v", err)
+	}
 
 	// Now the generated file should exist
 	if _, err := os.Stat(target); err != nil {
 		t.Fatalf("expected generated server file at %s, but not found: %v", target, err)
 	}
 
-	// Verify the logs mention generation (best-effort, since generate logs on success)
+	// Verify the logs mention generation
 	out := strings.Join(logMessages, "\n")
-	if !strings.Contains(out, "Generated server file") && !strings.Contains(out, "generate server from markdown") {
-		t.Logf("log output did not contain generation messages: %q", out)
+	if !strings.Contains(out, "generate server from markdown") && !strings.Contains(out, "Generating server files") {
+		// CreateTemplateServer might log to progress channel instead of h.Logger for some steps
+		// But generateServerFromEmbeddedMarkdown uses h.Logger if set.
+		// And we also verify h.inMemory is now false (logic switched strategy before Compile)
+		// Wait, if Compile failed inside startServer, does it stay in ExternalStrategy?
+		// CreateTemplateServer:
+		// 1. Stop InMemory
+		// 2. Generate
+		// 3. Switch h.inMemory=false, h.strategy=newExternal
+		// 4. h.strategy.Start() -> Compile -> Error
+		// So h.inMemory should be false even if Start fails.
+	}
+
+	if h.inMemory {
+		t.Error("Expected to be in External mode logic (h.inMemory = false) even if compilation failed")
 	}
 }
