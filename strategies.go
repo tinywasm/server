@@ -56,11 +56,7 @@ func (s *inMemoryStrategy) Start(wg *sync.WaitGroup) error {
 	s.running = true
 	s.mu.Unlock()
 
-	defer func() {
-		if wg != nil {
-			wg.Done()
-		}
-	}()
+	// WaitGroup Done is handled at the end of this function (blocking until exit)
 
 	mux := http.NewServeMux()
 
@@ -83,11 +79,26 @@ func (s *inMemoryStrategy) Start(wg *sync.WaitGroup) error {
 
 	s.handler.Logger("Starting In-Memory Server on port:", s.handler.AppPort)
 
+	// Capture server instance to avoid race condition with Stop() setting s.server = nil
+	srv := s.server
+
 	go func() {
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.handler.Logger("In-Memory Server error:", err)
 		}
 	}()
+
+	// Block until exit signal received
+	if s.handler.ExitChan != nil {
+		<-s.handler.ExitChan
+	}
+
+	// Stop the server
+	s.Stop()
+
+	if wg != nil {
+		wg.Done()
+	}
 
 	return nil
 }

@@ -27,7 +27,7 @@ type Config struct {
 4. **Inconsistent with sister packages**: `tinywasm` and `goflare` use clearer `SourceDir`/`OutputDir` pattern
 5. **PublicFolder redundancy**: This is really just metadata about where public assets are, not directly used by goserver's core function
 
-### Current Usage Pattern (from golite)
+### Current Usage Pattern (from tinywasm)
 ```go
 serverHandler = goserver.New(&goserver.Config{
     AppRootDir:                  h.rootDir,                                          // "/home/user/project"
@@ -268,8 +268,8 @@ func NewConfig() *Config {
    - `startserver_integration_test.go`
    - `external_server_integration_test.go`
 
-2. **Update `golite` package** integration:
-   - File: `golite/section-build.go`
+2. **Update `tinywasm` package** integration:
+   - File: `tinywasm/section-build.go`
    - Change from:
      ```go
      RootFolder:               filepath.Join(h.rootDir, h.config.CmdAppServerDir()),
@@ -289,9 +289,9 @@ func NewConfig() *Config {
 
 ### Phase 4: Validation
 1. Run `go test ./...` in `goserver` package
-2. Run `go test ./...` in `golite` package
+2. Run `go test ./...` in `tinywasm` package
 3. Manual integration test:
-   - Start golite in example project
+   - Start tinywasm in example project
    - Verify server compiles to `deploy/appserver/`
    - Verify server executes correctly
    - Verify hot reload works
@@ -359,7 +359,7 @@ func NewConfig() *Config {
 
 ### Breaking Changes Impact
 - **Severity**: HIGH - All users must update their code
-- **Scope**: Internal packages only (golite primarily)
+- **Scope**: Internal packages only (tinywasm primarily)
 - **Mitigation**: Clear migration guide + early communication
 
 ### Technical Risks
@@ -380,7 +380,7 @@ func NewConfig() *Config {
 ## Success Criteria
 
 ✅ All existing tests pass with updated Config  
-✅ golite integration works without issues  
+✅ tinywasm integration works without issues  
 ✅ Clearer, more intuitive API  
 ✅ Reduced configuration complexity (3 fewer fields)  
 ✅ Consistent with tinywasm/goflare patterns  
@@ -410,7 +410,7 @@ func NewConfig() *Config {
 6. **Easier to understand**: Less cognitive load for users
 
 ### Migration Impact
-- **Affected packages**: golite (primary user)
+- **Affected packages**: tinywasm (primary user)
 - **Breaking changes**: YES - All Config instantiations must update
 - **Estimated migration time**: 15-30 minutes per package
 - **Risk level**: LOW - Clear migration path, internal usage only
@@ -422,7 +422,7 @@ func NewConfig() *Config {
 All decisions have been approved. Ready to proceed with implementation:
 
 1. ✅ **START**: Phase 2 - Core Changes (goserver package)
-2. ⏳ **THEN**: Phase 3 - Update Dependents (tests + golite)
+2. ⏳ **THEN**: Phase 3 - Update Dependents (tests + tinywasm)
 3. ⏳ **THEN**: Phase 4 - Validation (testing)
 4. ⏳ **THEN**: Phase 5 - Documentation (README, CHANGELOG)
 

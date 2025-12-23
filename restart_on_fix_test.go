@@ -66,6 +66,7 @@ func main() {
 	}
 
 	handler := New(cfg)
+	handler.SetExternalServerMode(true)
 
 	// Start the server so there is a running process to stop on restart
 	var wg sync.WaitGroup

@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"os"
 	"path/filepath"
 )
 
@@ -10,8 +9,8 @@ type ServerHandler struct {
 	*Config
 	mainFileExternalServer string // eg: main.server.go
 	strategy               ServerStrategy
-	inMemory               bool // true if running in-memory
-	// goCompiler and goRun are now managed by externalStrategy
+	inMemory               bool // true if running internal server, false if external process
+	buildOnDisk            bool // true if compilation artifacts should be written to disk
 }
 
 type Config struct {
@@ -91,20 +90,10 @@ func New(c *Config) *ServerHandler {
 		mainFileExternalServer: c.MainInputFile, // Use configured file name
 	}
 
-	// Determine initial strategy
-	// Check if external server file exists in source directory
-	mainFilePath := filepath.Join(c.AppRootDir, c.SourceDir, sh.mainFileExternalServer)
-	if _, err := os.Stat(mainFilePath); err == nil {
-		// File exists, use External Strategy
-		sh.inMemory = false
-		sh.strategy = newExternalStrategy(sh)
-		sh.Logger("Found existing server file, using External Process strategy.")
-	} else {
-		// File does not exist, use In-Memory Strategy
-		sh.inMemory = true
-		sh.strategy = newInMemoryStrategy(sh)
-		sh.Logger("No existing server file, defaulting to In-Memory strategy.")
-	}
+	// Default to In-Memory Strategy (Internal Server)
+	sh.inMemory = true
+	sh.strategy = newInMemoryStrategy(sh)
+	// sh.Logger("Server initialized in In-Memory Mode (default)")
 
 	return sh
 }
@@ -121,15 +110,39 @@ func (h *ServerHandler) SupportedExtensions() []string {
 // UnobservedFiles returns the list of files that should not be tracked by file watchers
 func (h *ServerHandler) UnobservedFiles() []string {
 	if !h.inMemory {
-		// If external, we ideally delegate to the external strategy to know what to ignore.
-		// But UnobservedFiles is called by the watcher which might be independent.
-		// For now, we can check if strategy implements a method or just return standard ignores if known.
-		// The previous implementation utilized h.goCompiler.UnobservedFiles().
-		// We can cast strategy to externalStrategy or return empty if in-memory.
 		if ext, ok := h.strategy.(*externalStrategy); ok {
 			return ext.goCompiler.UnobservedFiles()
 		}
 	}
-	// In-memory generally doesn't produce artifacts to ignore, except maybe logs?
 	return []string{}
+}
+
+// SetBuildOnDisk sets whether the server artifacts should be written to disk.
+func (h *ServerHandler) SetBuildOnDisk(onDisk bool) {
+	h.buildOnDisk = onDisk
+	// If we are in external mode, it will compile to disk on Start/Restart
+	if !h.inMemory {
+		h.Logger("Server BuildOnDisk set to:", onDisk)
+	}
+}
+
+// SetExternalServerMode switches between Internal and External server strategies.
+func (h *ServerHandler) SetExternalServerMode(external bool) {
+	if external {
+		if h.inMemory {
+			h.Logger("Switching to External Server Mode...")
+			h.inMemory = false
+			h.strategy.Stop()
+			h.strategy = newExternalStrategy(h)
+			h.strategy.Start(nil)
+		}
+	} else {
+		if !h.inMemory {
+			h.Logger("Switching to Internal Server Mode...")
+			h.inMemory = true
+			h.strategy.Stop()
+			h.strategy = newInMemoryStrategy(h)
+			h.strategy.Start(nil)
+		}
+	}
 }
