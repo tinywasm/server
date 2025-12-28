@@ -27,9 +27,7 @@ func (h *ServerHandler) generateServerFromEmbeddedMarkdown() error {
 
 	// Never overwrite existing files
 	if _, err := os.Stat(targetPath); err == nil {
-		if h.Logger != nil {
-			h.Logger("Server file already exists at", targetPath, ", skipping generation")
-		}
+		h.Logger("Server file already exists at", targetPath, ", skipping generation")
 		return nil
 	}
 
@@ -67,34 +65,24 @@ func (h *ServerHandler) generateServerFromEmbeddedMarkdown() error {
 	m := devflow.NewMarkDown(h.AppRootDir, destDir, writer).
 		InputByte([]byte(processed))
 
-	if h.Logger != nil {
-		m.SetLogger(h.Logger)
-	}
-
 	// Extract to the main file name (mdgo will handle the path joining)
 	if err := m.Extract(h.mainFileExternalServer); err != nil {
 		return fmt.Errorf("extracting go code from markdown: %w", err)
 	}
 
-	if h.Logger != nil {
-		h.Logger("Generated server file at", targetPath)
-	}
+	h.Logger("Generated server file at", targetPath)
 	return nil
 }
 
 func (h *ServerHandler) processTemplate(markdown string, data serverTemplateData) (string, error) {
 	tmpl, err := template.New("server").Parse(markdown)
 	if err != nil {
-		if h.Logger != nil {
-			h.Logger("Template parsing error (using fallback):", err)
-		}
+		h.Logger("Template parsing error (using fallback):", err)
 		return markdown, err
 	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		if h.Logger != nil {
-			h.Logger("Template execution error (using fallback):", err)
-		}
+		h.Logger("Template execution error (using fallback):", err)
 		return markdown, err
 	}
 	return buf.String(), nil
