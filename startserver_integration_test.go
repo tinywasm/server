@@ -62,7 +62,6 @@ func TestStartServerRunsGeneratedServerAndResponds(t *testing.T) {
 		SourceDir:  sourceDir,
 		OutputDir:  outputDir,
 		AppPort:    fmt.Sprintf("%d", port),
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 		ArgumentsToRunServer: func() []string {
 			// Pass the public directory to the server as an environment variable
@@ -71,6 +70,8 @@ func TestStartServerRunsGeneratedServerAndResponds(t *testing.T) {
 	}
 
 	h := gs.New(cfg)
+	h.SetLog(logger)
+	h.SetExternalServerMode(true)
 
 	// Ensure external file absent
 	target := h.MainInputFileRelativePath()

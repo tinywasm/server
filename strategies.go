@@ -159,9 +159,7 @@ func newExternalStrategy(h *ServerHandler) *externalStrategy {
 
 	// Ensure the output directory exists
 	if err := os.MkdirAll(filepath.Join(h.AppRootDir, h.OutputDir), 0755); err != nil {
-		if h.Logger != nil {
-			h.Logger("Error creating output directory:", err)
-		}
+		h.Logger("Error creating output directory:", err)
 	}
 
 	compiler := gobuild.New(&gobuild.Config{

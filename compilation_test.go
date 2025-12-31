@@ -38,7 +38,6 @@ func TestStartServerAlwaysRecompiles(t *testing.T) {
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))), // "src/app"
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))), // "deploy"
 		AppPort:    "0",                                                                           // Use port 0 for automatic assignment
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
 
@@ -65,6 +64,7 @@ func main() {
 	}
 
 	handler := New(cfg)
+	handler.SetLog(logger)
 	handler.SetExternalServerMode(true)
 
 	// Start the server for the first time
@@ -158,7 +158,6 @@ func TestNewFileEventTriggersRecompilation(t *testing.T) {
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))),
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))),
 		AppPort:    "0", // Use port 0 for automatic assignment
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
 
@@ -185,6 +184,7 @@ func main() {
 	}
 
 	handler := New(cfg)
+	handler.SetLog(logger)
 	handler.SetExternalServerMode(true)
 
 	// Start the server first
@@ -257,7 +257,6 @@ func TestNewFileEventOnOtherGoFiles(t *testing.T) {
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))),
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))),
 		AppPort:    "0",
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
 
@@ -284,6 +283,7 @@ func main() {
 	}
 
 	handler := New(cfg)
+	handler.SetLog(logger)
 	handler.SetExternalServerMode(true)
 
 	// Create another Go file (shared module)

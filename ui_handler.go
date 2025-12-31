@@ -14,9 +14,10 @@ type UI interface {
 const StoreKeyExternalServer = "server_external_mode"
 
 type ServerModeHandler struct {
-	h  *ServerHandler
-	db Store
-	ui UI
+	h   *ServerHandler
+	db  Store
+	ui  UI
+	log func(message ...any)
 }
 
 func NewServerModeHandler(h *ServerHandler, db Store, ui UI) *ServerModeHandler {
@@ -25,6 +26,10 @@ func NewServerModeHandler(h *ServerHandler, db Store, ui UI) *ServerModeHandler 
 		db: db,
 		ui: ui,
 	}
+}
+
+func (s *ServerModeHandler) SetLog(f func(message ...any)) {
+	s.log = f
 }
 
 func (s *ServerModeHandler) Name() string {
@@ -43,7 +48,7 @@ func (s *ServerModeHandler) Label() string {
 	return "SERVER: INTERNAL"
 }
 
-func (s *ServerModeHandler) Execute(progress chan<- string) {
+func (s *ServerModeHandler) Execute() {
 	external := "false"
 	if val, err := s.db.Get(StoreKeyExternalServer); err == nil && val == "true" {
 		external = "true"
@@ -62,10 +67,12 @@ func (s *ServerModeHandler) Execute(progress chan<- string) {
 	isExternal := (external == "true")
 	s.h.SetExternalServerMode(isExternal)
 
-	if isExternal {
-		progress <- "Switched to External Server Mode"
-	} else {
-		progress <- "Switched to Internal Server Mode"
+	if s.log != nil {
+		if isExternal {
+			s.log("Switched to External Server Mode")
+		} else {
+			s.log("Switched to Internal Server Mode")
+		}
 	}
 
 	if s.ui != nil {

@@ -9,10 +9,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
-	. "github.com/tinywasm/server"
+	"github.com/tinywasm/server"
 )
 
 // TestPortConflictCleanup tests what happens when there's a port conflict
@@ -87,16 +88,16 @@ func main() {
 		t.Fatalf("creating main.go: %v", err)
 	}
 
-	cfg := &Config{
+	cfg := &server.Config{
 		AppRootDir: tmp,
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))),
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))),
 		AppPort:    fmt.Sprintf("%d", port),
-		Logger:     func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) },
 		ExitChan:   make(chan bool),
 	}
 
-	h := New(cfg)
+	h := server.New(cfg)
+	h.SetLog(func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) })
 
 	// Test 1: Start server normally
 	t.Log("🚀 Starting first server instance...")

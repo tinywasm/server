@@ -15,10 +15,11 @@ func newTestHandler(t *testing.T, sourceDir, outputDir, appRootDir string) *Serv
 		SourceDir:  sourceDir,
 		OutputDir:  outputDir,
 		AppPort:    "9090",
-		Logger:     func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) },
 		ExitChan:   make(chan bool),
 	}
-	return New(cfg)
+	h := New(cfg)
+	h.SetLog(func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) })
+	return h
 }
 
 func TestGenerateCreatesFile(t *testing.T) {

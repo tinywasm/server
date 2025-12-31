@@ -38,7 +38,6 @@ func TestNewFileEvent_RestartsAfterFix(t *testing.T) {
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))),
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))),
 		AppPort:    "0",
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
 
@@ -66,6 +65,7 @@ func main() {
 	}
 
 	handler := New(cfg)
+	handler.SetLog(logger)
 	handler.SetExternalServerMode(true)
 
 	// Start the server so there is a running process to stop on restart

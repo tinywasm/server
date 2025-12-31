@@ -27,11 +27,11 @@ func TestCreateTemplateServerGeneratesFile(t *testing.T) {
 		SourceDir:  "src/app",
 		OutputDir:  "deploy",
 		AppPort:    "0", // Use random port to avoid conflicts if it runs
-		Logger:     logger,
 		ExitChan:   make(chan bool, 1),
 	}
 
 	h := New(cfg)
+	h.SetLog(logger)
 
 	// Ensure external file doesn't exist initially
 	target := filepath.Join(h.AppRootDir, h.MainInputFileRelativePath())

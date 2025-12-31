@@ -11,6 +11,7 @@ type ServerHandler struct {
 	strategy               ServerStrategy
 	inMemory               bool // true if running internal server, false if external process
 	buildOnDisk            bool // true if compilation artifacts should be written to disk
+	log                    func(message ...any)
 }
 
 type Config struct {
@@ -23,7 +24,6 @@ type Config struct {
 	ArgumentsToRunServer        func() []string        // e.g., []string{"dev"}
 	AppPort                     string                 // e.g., 8080
 	Routes                      []func(*http.ServeMux) // Functions to register routes on the HTTP server
-	Logger                      func(message ...any)   // For logging output
 	ExitChan                    chan bool              // Global channel to signal shutdown
 }
 
@@ -37,10 +37,7 @@ func NewConfig() *Config {
 		MainInputFile: "main.go", // Default convention
 		AppPort:       "8080",
 		Routes:        nil,
-		Logger: func(message ...any) {
-			// Silent by default
-		},
-		ExitChan: make(chan bool),
+		ExitChan:      make(chan bool),
 	}
 }
 
@@ -71,9 +68,6 @@ func New(c *Config) *ServerHandler {
 		if c.AppPort == "" {
 			c.AppPort = dc.AppPort
 		}
-		if c.Logger == nil {
-			c.Logger = func(message ...any) {}
-		}
 		if c.ExitChan == nil {
 			c.ExitChan = make(chan bool)
 		}
@@ -96,6 +90,20 @@ func New(c *Config) *ServerHandler {
 	// sh.Logger("Server initialized in In-Memory Mode (default)")
 
 	return sh
+}
+
+func (h *ServerHandler) Name() string {
+	return "SERVER"
+}
+
+func (h *ServerHandler) SetLog(f func(message ...any)) {
+	h.log = f
+}
+
+func (h *ServerHandler) Logger(messages ...any) {
+	if h.log != nil {
+		h.log(messages...)
+	}
 }
 
 // MainInputFileRelativePath returns the path relative to AppRootDir (e.g., "src/cmd/appserver/main.go")

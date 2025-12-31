@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -115,16 +116,16 @@ func main() {
 		t.Fatalf("creating main.go: %v", err)
 	}
 
-	cfg := &Config{
+	serverConfig := &Config{
 		AppRootDir: tmp,
 		SourceDir:  filepath.ToSlash(strings.TrimPrefix(sourceDir, tmp+string(os.PathSeparator))),
 		OutputDir:  filepath.ToSlash(strings.TrimPrefix(outputDir, tmp+string(os.PathSeparator))),
 		AppPort:    fmt.Sprintf("%d", port),
-		Logger:     func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) },
 		ExitChan:   make(chan bool),
 	}
 
-	h := New(cfg)
+	h := New(serverConfig)
+	h.SetLog(func(messages ...any) { fmt.Fprintln(os.Stdout, messages...) })
 
 	// Test 1: Initial start
 	t.Log("🚀 Starting external server (v1)...")
@@ -252,6 +253,6 @@ func main() {
 	t.Log("✅ Server restart successful - now running v2")
 
 	// Cleanup
-	cfg.ExitChan <- true
+	serverConfig.ExitChan <- true
 	time.Sleep(1 * time.Second)
 }
